@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 from yttranscribe.markdown import (
+    _yaml_escape,
     render_multi_video_doc,
     render_playlist_info,
     render_single_video_doc,
@@ -8,6 +9,24 @@ from yttranscribe.markdown import (
     render_video_section,
     slugify,
 )
+
+
+class TestYamlEscape:
+    def test_simple_string(self):
+        assert _yaml_escape("hello") == '"hello"'
+
+    def test_colon_in_string(self):
+        assert _yaml_escape("key: value") == '"key: value"'
+
+    def test_quotes_in_string(self):
+        assert _yaml_escape('He said "hello"') == '"He said \\"hello\\""'
+
+    def test_backslash_in_string(self):
+        assert _yaml_escape("path\\to\\file") == '"path\\\\to\\\\file"'
+
+    def test_yaml_special_chars(self):
+        result = _yaml_escape("{brackets} and [arrays]")
+        assert result == '"{brackets} and [arrays]"'
 
 
 class TestSlugify:
@@ -176,7 +195,7 @@ class TestRenderSingleVideoDoc:
         assert "type: video" in result
         assert 'title: "Test Video"' in result
         assert "video_id: abc123" in result
-        assert "channel: Test Channel" in result
+        assert 'channel: "Test Channel"' in result
         assert "published: 2024-03-15" in result
         assert "duration: PT12M34S" in result
         assert "fetched: 2026-02-21" in result

@@ -25,7 +25,7 @@ See the [uv installation docs](https://docs.astral.sh/uv/getting-started/install
 
 ### YouTube Data API key
 
-Set `YOUTUBE_API_KEY` in your environment or in a `.env` file at the project root.
+Set `YOUTUBE_API_KEY` in your environment or in a `.env.secret` file at the project root.
 
 ## Claude Code MCP setup
 

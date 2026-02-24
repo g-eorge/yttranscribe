@@ -1,14 +1,52 @@
 from unittest.mock import MagicMock
 
+import pytest
+
 from yttranscribe.youtube import (
     get_playlist_metadata,
     get_playlist_video_ids,
     get_video_metadata,
+    validate_playlist_id,
+    validate_video_id,
 )
 
 
 def _mock_client():
     return MagicMock()
+
+
+class TestValidateVideoId:
+    def test_valid_id(self):
+        assert validate_video_id("dQw4w9WgXcQ") == "dQw4w9WgXcQ"
+
+    def test_valid_with_hyphens_underscores(self):
+        assert validate_video_id("abc-_123") == "abc-_123"
+
+    def test_empty_string(self):
+        with pytest.raises(ValueError, match="Invalid video ID"):
+            validate_video_id("")
+
+    def test_markdown_injection(self):
+        with pytest.raises(ValueError, match="Invalid video ID"):
+            validate_video_id("abc](evil) [click")
+
+    def test_special_chars(self):
+        with pytest.raises(ValueError, match="Invalid video ID"):
+            validate_video_id("abc;rm -rf /")
+
+
+class TestValidatePlaylistId:
+    def test_valid_id(self):
+        pl_id = "PLrAXtmErZgOeiKm4sgNOknGvNjby9efdf"
+        assert validate_playlist_id(pl_id) == pl_id
+
+    def test_empty_string(self):
+        with pytest.raises(ValueError, match="Invalid playlist ID"):
+            validate_playlist_id("")
+
+    def test_special_chars(self):
+        with pytest.raises(ValueError, match="Invalid playlist ID"):
+            validate_playlist_id("PL123; DROP TABLE")
 
 
 class TestGetVideoMetadata:

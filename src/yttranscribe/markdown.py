@@ -4,6 +4,12 @@ from datetime import date
 from yttranscribe.transcript import format_timestamp
 
 
+def _yaml_escape(value: str) -> str:
+    """Escape a string for safe inclusion in YAML front matter."""
+    value = value.replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{value}"'
+
+
 def slugify(title: str) -> str:
     """Convert a title to a filename-safe slug."""
     slug = title.lower()
@@ -178,8 +184,8 @@ def render_single_video_doc(
     front_matter = f"""---
 type: video
 video_id: {video_id}
-title: "{title}"
-channel: {channel}
+title: {_yaml_escape(title)}
+channel: {_yaml_escape(channel)}
 channel_id: {channel_id}
 published: {published}
 duration: {duration}
@@ -241,8 +247,8 @@ def render_multi_video_doc(videos: list[dict], playlist_meta: dict | None = None
         front_matter = f"""---
 type: playlist
 playlist_id: {playlist_id}
-title: "{title}"
-channel: {channel}
+title: {_yaml_escape(title)}
+channel: {_yaml_escape(channel)}
 video_count: {len(videos)}
 url: {url}
 fetched: {today}

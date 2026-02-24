@@ -1,14 +1,30 @@
 import os
+import re
 import sys
 
 from dotenv import load_dotenv
 from googleapiclient.discovery import build
 
-load_dotenv(".env.secret")
+_VIDEO_ID_RE = re.compile(r"^[a-zA-Z0-9_-]+$")
+
+
+def validate_video_id(video_id: str) -> str:
+    """Validate and return a video ID, or raise ValueError."""
+    if not video_id or not _VIDEO_ID_RE.match(video_id):
+        raise ValueError(f"Invalid video ID: {video_id!r}")
+    return video_id
+
+
+def validate_playlist_id(playlist_id: str) -> str:
+    """Validate and return a playlist ID, or raise ValueError."""
+    if not playlist_id or not _VIDEO_ID_RE.match(playlist_id):
+        raise ValueError(f"Invalid playlist ID: {playlist_id!r}")
+    return playlist_id
 
 
 def build_youtube_client():
     """Create a YouTube Data API v3 client using an API key."""
+    load_dotenv(".env.secret")
     api_key = os.environ.get("YOUTUBE_API_KEY")
     if not api_key:
         raise ValueError("YOUTUBE_API_KEY environment variable is not set.")
@@ -17,6 +33,7 @@ def build_youtube_client():
 
 def get_video_metadata(client, video_id: str) -> dict:
     """Fetch metadata for a single video. Returns a normalized dict."""
+    validate_video_id(video_id)
     response = (
         client.videos().list(part="snippet,contentDetails,statistics", id=video_id).execute()
     )
@@ -59,6 +76,7 @@ def get_video_metadata(client, video_id: str) -> dict:
 
 def get_playlist_metadata(client, playlist_id: str) -> dict:
     """Fetch metadata for a playlist."""
+    validate_playlist_id(playlist_id)
     response = client.playlists().list(part="snippet,contentDetails", id=playlist_id).execute()
     items = response.get("items", [])
     if not items:
@@ -78,6 +96,7 @@ def get_playlist_metadata(client, playlist_id: str) -> dict:
 
 def get_playlist_video_ids(client, playlist_id: str) -> list[str]:
     """Fetch all video IDs from a playlist, handling pagination."""
+    validate_playlist_id(playlist_id)
     video_ids = []
     page_token = None
 
