@@ -1,0 +1,37 @@
+[project]
+name = "yttranscribe"
+version = "0.1.0"
+description = "Fetch YouTube video transcripts and metadata, saving them to structured markdown"
+readme = "README.md"
+authors = [
+    { name = "George Agnelli", email = "george.agnelli@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "google-api-python-client>=2.190.0",
+    "python-dotenv>=1.1.0",
+    "youtube-transcript-api>=1.2.4",
+]
+
+[build-system]
+requires = ["uv_build>=0.10.4,<0.11.0"]
+build-backend = "uv_build"
+
+[project.scripts]
+yttranscribe = "yttranscribe.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "ruff>=0.15.2",
+]
+
+[tool.ruff]
+line-length = 99
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
