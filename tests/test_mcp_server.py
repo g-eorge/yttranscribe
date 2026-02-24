@@ -2,7 +2,12 @@ from unittest.mock import patch
 
 import pytest
 
-from yttranscribe.mcp_server import get_playlist_info, get_transcript, get_video_info
+from yttranscribe.mcp_server import (
+    get_playlist_info,
+    get_playlist_transcripts,
+    get_transcript,
+    get_video_info,
+)
 
 SAMPLE_META = {
     "title": "Test Video",
@@ -101,3 +106,57 @@ class TestGetPlaylistInfo:
     def test_playlist_not_found_raises(self, mock_client, mock_pl_meta):
         with pytest.raises(ValueError, match="not found"):
             get_playlist_info("XYZ")
+
+
+SAMPLE_META_V1 = {**SAMPLE_META, "title": "Video One", "published": "2024-03-10"}
+SAMPLE_META_V2 = {**SAMPLE_META, "title": "Video Two", "published": "2024-03-20"}
+
+
+class TestGetPlaylistTranscripts:
+    @patch("yttranscribe.mcp_server.render_multi_video_doc", return_value="# My Playlist\n## Video One\n## Video Two")
+    @patch("yttranscribe.mcp_server.group_segments", return_value=SAMPLE_BLOCKS)
+    @patch("yttranscribe.mcp_server.fetch_transcript", return_value=SAMPLE_TRANSCRIPT)
+    @patch("yttranscribe.mcp_server.get_video_metadata", side_effect=[SAMPLE_META_V1, SAMPLE_META_V2])
+    @patch("yttranscribe.mcp_server.get_playlist_video_ids", return_value=["v1", "v2"])
+    @patch("yttranscribe.mcp_server.get_playlist_metadata", return_value=SAMPLE_PLAYLIST_META)
+    @patch("yttranscribe.mcp_server.build_youtube_client")
+    def test_returns_markdown(self, mock_client, mock_pl_meta, mock_pl_ids, mock_vid_meta, mock_tx, mock_grp, mock_render):
+        result = get_playlist_transcripts("PL123")
+        assert "My Playlist" in result
+        assert "Video One" in result
+        assert "Video Two" in result
+        mock_pl_meta.assert_called_once_with(mock_client.return_value, "PL123")
+        mock_pl_ids.assert_called_once_with(mock_client.return_value, "PL123")
+        mock_render.assert_called_once()
+        args, kwargs = mock_render.call_args
+        assert len(args[0]) == 2
+        assert kwargs["playlist_meta"] == SAMPLE_PLAYLIST_META
+
+    @patch("yttranscribe.mcp_server.render_multi_video_doc", return_value="# My Playlist\n## Video Two")
+    @patch("yttranscribe.mcp_server.group_segments", return_value=SAMPLE_BLOCKS)
+    @patch("yttranscribe.mcp_server.fetch_transcript", return_value=SAMPLE_TRANSCRIPT)
+    @patch("yttranscribe.mcp_server.get_video_metadata", side_effect=[Exception("not found"), SAMPLE_META_V2])
+    @patch("yttranscribe.mcp_server.get_playlist_video_ids", return_value=["v1", "v2"])
+    @patch("yttranscribe.mcp_server.get_playlist_metadata", return_value=SAMPLE_PLAYLIST_META)
+    @patch("yttranscribe.mcp_server.build_youtube_client")
+    def test_skips_failed_videos(self, mock_client, mock_pl_meta, mock_pl_ids, mock_vid_meta, mock_tx, mock_grp, mock_render):
+        result = get_playlist_transcripts("PL123")
+        assert "Video Two" in result
+        mock_render.assert_called_once()
+        args, _ = mock_render.call_args
+        assert len(args[0]) == 1
+        assert args[0][0]["video_id"] == "v2"
+
+    @patch("yttranscribe.mcp_server.build_youtube_client", side_effect=ValueError("no key"))
+    def test_missing_api_key_raises(self, mock_client):
+        with pytest.raises(ValueError, match="no key"):
+            get_playlist_transcripts("PL123")
+
+    @patch(
+        "yttranscribe.mcp_server.get_playlist_metadata",
+        side_effect=ValueError("Playlist XYZ not found."),
+    )
+    @patch("yttranscribe.mcp_server.build_youtube_client")
+    def test_playlist_not_found_raises(self, mock_client, mock_pl_meta):
+        with pytest.raises(ValueError, match="not found"):
+            get_playlist_transcripts("XYZ")
