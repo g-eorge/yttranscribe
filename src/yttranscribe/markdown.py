@@ -102,6 +102,67 @@ def render_video_section(
     return "\n".join(parts)
 
 
+def render_video_info(metadata: dict, video_id: str) -> str:
+    """Render metadata-only markdown for a video (no transcript)."""
+    title = metadata["title"]
+    channel = metadata["channel"]
+    published = metadata["published"]
+    duration = _format_duration(metadata["duration"])
+    url = f"https://www.youtube.com/watch?v={video_id}"
+
+    parts = [f"# {title}", "", "## Metadata", ""]
+    parts.append("| Field | Value |")
+    parts.append("|-------|-------|")
+    parts.append(f"| Video ID | {video_id} |")
+    parts.append(f"| Channel | {channel} |")
+    parts.append(f"| Published | {published} |")
+    parts.append(f"| Duration | {duration} |")
+
+    if "views" in metadata:
+        parts.append(f"| Views | {metadata['views']} |")
+    if metadata.get("tags"):
+        parts.append(f"| Tags | {', '.join(metadata['tags'])} |")
+
+    parts.append(f"| URL | {url} |")
+    parts.append("")
+
+    if metadata.get("description"):
+        parts.append("## Description")
+        parts.append("")
+        parts.append(metadata["description"])
+        parts.append("")
+
+    return "\n".join(parts)
+
+
+def render_playlist_info(metadata: dict, video_ids: list[str]) -> str:
+    """Render playlist overview markdown with video ID table."""
+    title = metadata["title"]
+    playlist_id = metadata["playlist_id"]
+    channel = metadata.get("channel", "")
+    video_count = metadata.get("video_count", len(video_ids))
+    url = f"https://www.youtube.com/playlist?list={playlist_id}"
+
+    parts = [f"# {title}", ""]
+    parts.append("| Field | Value |")
+    parts.append("|-------|-------|")
+    parts.append(f"| Playlist ID | {playlist_id} |")
+    parts.append(f"| Channel | {channel} |")
+    parts.append(f"| Video count | {video_count} |")
+    parts.append(f"| URL | {url} |")
+    parts.append("")
+
+    parts.append("## Videos")
+    parts.append("")
+    parts.append("| # | Video ID |")
+    parts.append("|---|----------|")
+    for i, vid in enumerate(video_ids, 1):
+        parts.append(f"| {i} | {vid} |")
+    parts.append("")
+
+    return "\n".join(parts)
+
+
 def render_single_video_doc(
     metadata: dict, transcript_blocks: list[dict] | None, video_id: str
 ) -> str:

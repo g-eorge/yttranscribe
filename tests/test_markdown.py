@@ -2,7 +2,9 @@ from unittest.mock import patch
 
 from yttranscribe.markdown import (
     render_multi_video_doc,
+    render_playlist_info,
     render_single_video_doc,
+    render_video_info,
     render_video_section,
     slugify,
 )
@@ -93,6 +95,77 @@ class TestRenderVideoSection:
         meta = {**SAMPLE_METADATA, "description": ""}
         result = render_video_section(meta, SAMPLE_BLOCKS, "abc123")
         assert "### Description" not in result
+
+
+class TestRenderVideoInfo:
+    def test_contains_heading(self):
+        result = render_video_info(SAMPLE_METADATA, "abc123")
+        assert "# Test Video" in result
+
+    def test_contains_metadata_table(self):
+        result = render_video_info(SAMPLE_METADATA, "abc123")
+        assert "| Video ID | abc123 |" in result
+        assert "| Channel | Test Channel |" in result
+        assert "| Published | 2024-03-15 |" in result
+        assert "| Duration | 12:34 |" in result
+        assert "| Views | 1,234,567 |" in result
+        assert "| Tags | tag1, tag2 |" in result
+        assert "| URL | https://www.youtube.com/watch?v=abc123 |" in result
+
+    def test_contains_description(self):
+        result = render_video_info(SAMPLE_METADATA, "abc123")
+        assert "## Description" in result
+        assert "A test description." in result
+
+    def test_no_description(self):
+        meta = {**SAMPLE_METADATA, "description": ""}
+        result = render_video_info(meta, "abc123")
+        assert "## Description" not in result
+
+    def test_no_tags(self):
+        meta = {**SAMPLE_METADATA, "tags": []}
+        result = render_video_info(meta, "abc123")
+        assert "Tags" not in result
+
+    def test_no_transcript_section(self):
+        result = render_video_info(SAMPLE_METADATA, "abc123")
+        assert "Transcript" not in result
+
+
+SAMPLE_PLAYLIST_METADATA = {
+    "playlist_id": "PL123",
+    "title": "My Playlist",
+    "channel": "Test Channel",
+    "video_count": 3,
+}
+
+
+class TestRenderPlaylistInfo:
+    def test_contains_heading(self):
+        result = render_playlist_info(SAMPLE_PLAYLIST_METADATA, ["v1", "v2", "v3"])
+        assert "# My Playlist" in result
+
+    def test_contains_metadata_table(self):
+        result = render_playlist_info(SAMPLE_PLAYLIST_METADATA, ["v1", "v2", "v3"])
+        assert "| Playlist ID | PL123 |" in result
+        assert "| Channel | Test Channel |" in result
+        assert "| Video count | 3 |" in result
+        assert "| URL | https://www.youtube.com/playlist?list=PL123 |" in result
+
+    def test_contains_video_table(self):
+        result = render_playlist_info(SAMPLE_PLAYLIST_METADATA, ["v1", "v2", "v3"])
+        assert "## Videos" in result
+        assert "| # | Video ID |" in result
+        assert "| 1 | v1 |" in result
+        assert "| 2 | v2 |" in result
+        assert "| 3 | v3 |" in result
+
+    def test_empty_video_list(self):
+        result = render_playlist_info(SAMPLE_PLAYLIST_METADATA, [])
+        assert "## Videos" in result
+        assert "| # | Video ID |" in result
+        # Table header present but no data rows
+        assert "| 1 |" not in result
 
 
 class TestRenderSingleVideoDoc:

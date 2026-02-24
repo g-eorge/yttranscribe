@@ -11,8 +11,7 @@ def build_youtube_client():
     """Create a YouTube Data API v3 client using an API key."""
     api_key = os.environ.get("YOUTUBE_API_KEY")
     if not api_key:
-        print("Error: YOUTUBE_API_KEY environment variable is not set.", file=sys.stderr)
-        sys.exit(1)
+        raise ValueError("YOUTUBE_API_KEY environment variable is not set.")
     return build("youtube", "v3", developerKey=api_key)
 
 
@@ -63,8 +62,7 @@ def get_playlist_metadata(client, playlist_id: str) -> dict:
     response = client.playlists().list(part="snippet,contentDetails", id=playlist_id).execute()
     items = response.get("items", [])
     if not items:
-        print(f"Error: Playlist {playlist_id} not found.", file=sys.stderr)
-        sys.exit(1)
+        raise ValueError(f"Playlist {playlist_id} not found.")
 
     item = items[0]
     snippet = item["snippet"]

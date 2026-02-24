@@ -75,7 +75,7 @@ class TestMainDispatch:
         mock_meta.assert_called_once()
         mock_tx.assert_called_once_with("abc123", "en")
         mock_render.assert_called_once()
-        mock_write.assert_called_once_with("test.md", "# Doc")
+        mock_write.assert_called_once_with(None, "# Doc")
 
     @patch("yttranscribe.cli._write_output")
     @patch("yttranscribe.cli.render_multi_video_doc", return_value="# Multi")
@@ -125,7 +125,7 @@ class TestMainDispatch:
         mock_pl_ids.assert_called_once()
         assert mock_meta.call_count == 2
         mock_render.assert_called_once()
-        mock_write.assert_called_once_with("my-playlist.md", "# PL")
+        mock_write.assert_called_once_with(None, "# PL")
 
     @patch("yttranscribe.cli.build_youtube_client")
     def test_playlist_multiple_ids_error(self, mock_client):

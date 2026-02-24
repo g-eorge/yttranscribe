@@ -4,7 +4,6 @@ import sys
 from yttranscribe.markdown import (
     render_multi_video_doc,
     render_single_video_doc,
-    slugify,
 )
 from yttranscribe.transcript import fetch_transcript, group_segments
 from yttranscribe.youtube import (
@@ -35,7 +34,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--output",
         "-o",
         metavar="FILE",
-        help="Output file path (default: auto-generated from title)",
+        help="Output file path (default: stdout)",
     )
     parser.add_argument(
         "--lang",
@@ -69,7 +68,11 @@ def main(argv: list[str] | None = None) -> None:
         print("Error: --playlist requires exactly one playlist ID.", file=sys.stderr)
         sys.exit(1)
 
-    client = build_youtube_client()
+    try:
+        client = build_youtube_client()
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
     if args.playlist:
         _run_playlist(client, args)
@@ -84,8 +87,7 @@ def _run_single(client, args: argparse.Namespace) -> None:
     video = _fetch_video(client, video_id, args.lang)
     doc = render_single_video_doc(video["metadata"], video["transcript_blocks"], video_id)
 
-    output = args.output or f"{slugify(video['metadata']['title'])}.md"
-    _write_output(output, doc)
+    _write_output(args.output, doc)
 
 
 def _run_multi(client, args: argparse.Namespace) -> None:
@@ -97,16 +99,18 @@ def _run_multi(client, args: argparse.Namespace) -> None:
     videos.sort(key=lambda v: v["metadata"]["published"])
     doc = render_multi_video_doc(videos)
 
-    first_title = videos[0]["metadata"]["title"]
-    output = args.output or f"{slugify(first_title)}.md"
-    _write_output(output, doc)
+    _write_output(args.output, doc)
 
 
 def _run_playlist(client, args: argparse.Namespace) -> None:
     playlist_id = args.ids[0]
 
     print(f"Fetching playlist metadata for {playlist_id}...", file=sys.stderr)
-    playlist_meta = get_playlist_metadata(client, playlist_id)
+    try:
+        playlist_meta = get_playlist_metadata(client, playlist_id)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
     print("Fetching video IDs from playlist...", file=sys.stderr)
     video_ids = get_playlist_video_ids(client, playlist_id)
@@ -123,11 +127,13 @@ def _run_playlist(client, args: argparse.Namespace) -> None:
     videos.sort(key=lambda v: v["metadata"]["published"])
     doc = render_multi_video_doc(videos, playlist_meta=playlist_meta)
 
-    output = args.output or f"{slugify(playlist_meta['title'])}.md"
-    _write_output(output, doc)
+    _write_output(args.output, doc)
 
 
-def _write_output(path: str, content: str) -> None:
-    with open(path, "w") as f:
-        f.write(content)
-    print(f"Written to {path}", file=sys.stderr)
+def _write_output(path: str | None, content: str) -> None:
+    if path is None:
+        print(content)
+    else:
+        with open(path, "w") as f:
+            f.write(content)
+        print(f"Written to {path}", file=sys.stderr)

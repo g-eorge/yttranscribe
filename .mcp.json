@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "yttranscribe": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", "python", "-m", "yttranscribe.mcp_server"]
+    }
+  }
+}
